@@ -1,38 +1,137 @@
-/* ============================================================
-   Scripture Generator – Full Redesigned Stylesheet
-   Consistent with all original instructions + new color theme
-   + added dark mode support
-   ============================================================ */
+/* File: style.css
+   Purpose: Full stylesheet for the app.
+   Notes:
+   - Uses Nunito fonts (loaded in index.html).
+   - Typography rules follow your spec (title 30 bold, tagline 18 semi-bold, body/buttons 16).
+   - Primary text color corrected to #000000 (6-digit hex).
+   - Background color for every page: #D1B960 (applies to page body areas).
+   - Header background color (app title area): interpreted as #C7B35D (7th char in your input removed to make valid hex).
+   - Border color for cards/buttons: #D1B960 (per your earlier request).
+   - Every major wrapper/section has clear class names; edit those rather than global selectors to avoid breaking other pages.
+*/
 
-/* ------------------------------------------------------------
-   COLOR VARIABLES
-   Using CSS variables keeps everything easy to edit later.
-   ------------------------------------------------------------ */
-:root {
-  --bg-color: #C7B35D;        /* Page background */
-  --border-color: #D1B960;    /* Gold border */
-  --text-color: #000000;      /* Default text */
-
-  /* Dark mode colors */
-  --bg-color-dark: #2B2B2B;
-  --border-color-dark: #7A5F26; 
-  --text-color-dark: #FFFFFF;
+/* --- Variables for easy future edits --- */
+:root{
+  --page-bg: #D1B960;      /* UI background for pages */
+  --header-bg: #C7B35D;    /* Header background (interpreted as valid 6-digit hex) */
+  --border-color: #D1B960; /* Border color */
+  --text-color: #000000;   /* Main text color */
+  --copyright-color: #434343;
+  --title-size: 30px;
+  --tagline-size: 18px;
+  --body-size: 16px;
 }
 
-/* Dark mode class applied to <body> */
-body.dark-mode {
-  background-color: var(--bg-color-dark);
-  color: var(--text-color-dark);
+/* Reset & base */
+* { box-sizing: border-box; }
+html,body { height:100%; margin:0; padding:0; font-family:'Nunito',sans-serif; color:var(--text-color); background:var(--page-bg); }
+
+/* Header wrapper styling (kept separate so editing won't affect page bodies) */
+#app-header {
+  background: var(--header-bg); /* header enclosed in this color */
+  text-align:center;
+  padding:20px 10px;
+  border-bottom: 2px solid var(--border-color);
 }
 
-/* ------------------------------------------------------------
-   RESET + BASE
-   ------------------------------------------------------------ */
-* {
-  box-sizing: border-box;
+/* App title and tagline */
+.app-title {
+  font-weight:700; /* Nunito bold */
+  font-size:var(--title-size);
+  margin:0;
+}
+.app-tagline {
+  font-weight:600; /* Nunito semi-bold */
+  font-size:var(--tagline-size);
+  margin:6px 0 0;
 }
 
-html, body {
-  height: 100%;
-  margin: 0;
-  pad
+/* Page wrappers */
+.page { display:none; padding:20px; min-height:60vh; }
+.page.active { display:block; }
+
+/* Inner container */
+.page-inner { max-width:780px; margin:0 auto; }
+
+/* Headings inside pages */
+.page-heading { margin:0 0 12px; font-size:20px; }
+
+/* Buttons */
+button {
+  font-family:'Nunito',sans-serif;
+  font-size:var(--body-size);
+  padding:10px 14px;
+  border-radius:8px;
+  border:2px solid var(--border-color);
+  background:#ffffff;
+  cursor:pointer;
+}
+
+/* Button group */
+.controls { margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+
+/* Question item card */
+.question-item {
+  border:2px solid var(--border-color);
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:16px;
+  background: rgba(255,255,255,0.6); /* slight contrast for readability */
+}
+
+/* Question text and options */
+.question-text { font-size:var(--body-size); margin:0 0 8px; }
+.options { display:flex; flex-direction:column; gap:8px; }
+.option-label { display:flex; align-items:center; gap:8px; cursor:pointer; }
+
+/* Underlined blank */
+.blank { text-decoration:underline; }
+
+/* Placeholder images */
+.placeholder-image img { max-width:100%; height:auto; display:block; margin-top:12px; border:2px solid var(--border-color); border-radius:8px; }
+
+/* Settings floating button bottom-right */
+#settings-btn {
+  position:fixed;
+  right:16px;
+  bottom:16px;
+  width:56px;
+  height:56px;
+  border-radius:28px;
+  border:none;
+  background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  padding:6px;
+}
+#settings-btn img { width:32px; height:32px; }
+
+/* Settings textarea styling (isolated) */
+.settings-entry textarea {
+  width:100%;
+  padding:10px;
+  font-size:var(--body-size);
+  border-radius:8px;
+  border:2px solid var(--border-color);
+  resize:vertical;
+}
+
+/* Settings footer copyright (specific color & style) */
+.settings-footer { margin-top:24px; text-align:center; }
+.settings-footer .copyright {
+  color: var(--copyright-color);
+  font-size:11px;
+  font-style:italic;
+}
+
+/* Hidden utility class */
+.hidden { display:none !important; }
+
+/* Responsive adjustments */
+@media (max-width:520px){
+  .page-inner { padding:8px; }
+  .controls { flex-direction:column; }
+}
