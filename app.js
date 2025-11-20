@@ -145,6 +145,7 @@ function evaluateLevel(levelNumber, answers) {
    UI event wiring (keeps DOM selection localized to pages)
    ------------------------- */
 function wireUpEvents() {
+
   /* Home page buttons */
   document.getElementById('btn-start').addEventListener('click', () => {
     STATE.currentLevel = 1;
@@ -165,6 +166,36 @@ function wireUpEvents() {
   document.getElementById('btn-back-home').addEventListener('click', () => {
     showPage('page-home');
   });
+
+
+  /* -------------------------
+     DARK MODE TOGGLE
+     (placed AFTER the other UI buttons)
+     ------------------------- */
+  const darkToggle = document.getElementById('darkmode-toggle');
+
+  // Load previously saved theme
+  try {
+    const savedTheme = localStorage.getItem('scripture-theme');
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark-mode');
+      darkToggle.checked = true;
+    }
+  } catch (e) {}
+
+  // Handle toggling on/off
+  darkToggle.addEventListener('change', () => {
+    if (darkToggle.checked) {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('scripture-theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('scripture-theme', 'light');
+    }
+  });
+
+} // ← end of wireUpEvents()
+
 
   /* Submit level */
   document.getElementById('btn-submit-level').addEventListener('click', () => {
