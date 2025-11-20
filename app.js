@@ -1,41 +1,54 @@
-/* app.js
-   Purpose: main application logic and routing.
-   - Handles showing/hiding page wrappers to avoid editing conflicts.
-   - Renders questions for a level from LEVELS array (levels.js).
-   - Tracks per-level and total scores in localStorage so progress persists.
-   - All DOM elements are selected within each page wrapper to reduce cross-page coupling.
+/* File: app.js
+   Purpose: Main application logic (routing, rendering, event wiring, scoring).
+   Comments:
+   - All DOM manipulation is scoped to individual page wrappers to avoid cross-page side effects.
+   - Each major function has a descriptive comment above it.
+   - State persists grand totals in localStorage under key 'scripture-gen-totals'.
 */
 
 /* -------------------------
-   Utility & state
+   App State
    ------------------------- */
 const STATE = {
   currentLevel: 1,
-  answers: {}, // temporary per-level answers { questionId: selectedIndex }
-  totals: { correct: 0, attempted: 0 } // grand totals across levels
+  answers: {}, // per-level temporary answers { questionId: selectedIndex }
+  totals: { correct: 0, attempted: 0 }
 };
 
-// Try to restore saved totals from localStorage
+/* Try to restore totals from localStorage (non-fatal) */
 try {
   const saved = localStorage.getItem('scripture-gen-totals');
   if (saved) STATE.totals = JSON.parse(saved);
-} catch (e) { console.warn('Could not load saved totals', e); }
+} catch (e) { /* ignore */ }
 
 /* -------------------------
-   Simple client-side routing by showing/hiding sections
+   Show/hide page wrappers (routing)
+   Purpose: only the active page wrapper is visible; others hidden.
    ------------------------- */
 function showPage(pageId) {
-  // Purpose: show one page wrapper and hide others to keep DOM modular
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Hide all .page wrappers
+  document.querySelectorAll('.page').forEach(p => {
+    p.hidden = true;
+    p.classList.remove('active');
+  });
+  // Show requested page wrapper (safe because elements exist in DOM)
   const page = document.getElementById(pageId);
-  if (page) page.classList.add('active');
+  if (page) {
+    page.hidden = false;
+    page.classList.add('active');
+    // scroll to top of main content when page changes
+    window.scrollTo(0,0);
+  }
 }
 
 /* -------------------------
-   Populate level jump selector on Home page
+   Populate level selector on Home page
+   Purpose: fill <select id="jump-level"> with Level 1..100 options
    ------------------------- */
 function populateLevelSelector() {
   const sel = document.getElementById('jump-level');
+  if (!sel) return;
+  sel.innerHTML = '';
   LEVELS.forEach(lv => {
     const opt = document.createElement('option');
     opt.value = lv.levelNumber;
@@ -45,116 +58,120 @@ function populateLevelSelector() {
 }
 
 /* -------------------------
-   Render a level's questions into #questions-container
-   Each question is wrapped in its own <article> to avoid cross-impact.
+   Render a level's questions
+   Purpose: render only inside #questions-container to keep DOM scoped
    ------------------------- */
 function renderLevel(levelNumber) {
   const level = LEVELS[levelNumber - 1];
   const container = document.getElementById('questions-container');
-  container.innerHTML = ''; // clear only this wrapper (won't affect other pages)
+  if (!level || !container) return;
 
-  // Fill page header
-  document.getElementById('level-title').textContent = `Level ${levelNumber}`;
+  // Update header for level
+  const titleEl = document.getElementById('level-title');
+  if (titleEl) titleEl.textContent = `Level ${levelNumber}`;
+
+  // Clear only this container (safe edit locality)
+  container.innerHTML = '';
 
   level.questions.forEach((q, idx) => {
-    /* Create a wrapper article for each question.
-       Purpose: editing one question DOM won't affect others. */
+    // Create wrapper article per question (isolated)
     const article = document.createElement('article');
     article.className = 'question-item';
 
-    // Question text: if q.text is empty, provide <p></p> placeholder
-    const p = document.createElement('p');
+    // Question text: use provided HTML or placeholder <p></p>
+    const p = document.createElement('div');
     p.className = 'question-text';
     p.innerHTML = q.text && q.text.trim() ? q.text : '<p></p>';
     article.appendChild(p);
 
     // Options container
-    const optionsDiv = document.createElement('div');
-    optionsDiv.className = 'options';
+    const opts = document.createElement('div');
+    opts.className = 'options';
 
     q.options.forEach((optText, optIndex) => {
-      // Each option is a label + radio input (so clicking text selects input).
       const label = document.createElement('label');
       label.className = 'option-label';
 
       const input = document.createElement('input');
       input.type = 'radio';
-      input.name = `q-${levelNumber}-${idx}`; // unique per question per level
+      input.name = `q-${levelNumber}-${idx}`;
       input.value = optIndex;
-      // store value attributes for later evaluation
       input.dataset.questionId = q.id;
 
-      // If user previously answered in this session, restore selection
-      const key = `${q.id}`;
-      if (STATE.answers[key] !== undefined && STATE.answers[key] === optIndex) {
+      // Restore selection from STATE.answers if present
+      if (STATE.answers[q.id] !== undefined && STATE.answers[q.id] === optIndex) {
         input.checked = true;
       }
 
       const span = document.createElement('span');
-      span.textContent = optText || 'Option';
+      span.textContent = optText || `Option ${String.fromCharCode(97 + optIndex)}`;
 
       label.appendChild(input);
       label.appendChild(span);
-      optionsDiv.appendChild(label);
+      opts.appendChild(label);
     });
 
-    article.appendChild(optionsDiv);
+    article.appendChild(opts);
     container.appendChild(article);
   });
 }
 
 /* -------------------------
-   Collect answers from DOM for the current level
+   Collect answers for current level
+   Purpose: read radio inputs for current level and return a mapping
    ------------------------- */
 function collectAnswers(levelNumber) {
   const level = LEVELS[levelNumber - 1];
-  const answers = {};
+  const result = {};
+  if (!level) return result;
+
   level.questions.forEach((q, idx) => {
     const radios = document.getElementsByName(`q-${levelNumber}-${idx}`);
     let selected = null;
-    radios.forEach(r => {
-      if (r.checked) selected = Number(r.value);
-    });
-    answers[q.id] = selected; // null if unanswered
+    radios.forEach(r => { if (r.checked) selected = Number(r.value); });
+    result[q.id] = selected;
   });
-  return answers;
+  return result;
 }
 
 /* -------------------------
-   Evaluate answers for a level and update totals
+   Evaluate level answers and update totals
+   Purpose: compares collected answers with LEVELS answerIndex, updates STATE.totals
    ------------------------- */
 function evaluateLevel(levelNumber, answers) {
   const level = LEVELS[levelNumber - 1];
+  if (!level) return 0;
   let correct = 0;
   level.questions.forEach(q => {
     const sel = answers[q.id];
-    if (sel !== null && q.answerIndex !== null && sel === q.answerIndex) {
-      correct++;
-    }
+    if (sel !== null && q.answerIndex !== null && sel === q.answerIndex) correct++;
   });
-  // Update grand totals
+
+  // Update grand totals and persist
   STATE.totals.correct += correct;
   STATE.totals.attempted += level.questions.length;
-  // Persist totals
   try { localStorage.setItem('scripture-gen-totals', JSON.stringify(STATE.totals)); } catch(e){}
 
   return correct;
 }
 
 /* -------------------------
-   UI event wiring (keeps DOM selection localized to pages)
+   Wire up UI events
+   Purpose: attach event listeners scoped to page wrappers; keep isolated to avoid side effects
    ------------------------- */
 function wireUpEvents() {
-
-  /* Home page buttons */
-  document.getElementById('btn-start').addEventListener('click', () => {
+  // Home: Start Level 1
+  const btnStart = document.getElementById('btn-start');
+  if (btnStart) btnStart.addEventListener('click', () => {
     STATE.currentLevel = 1;
     STATE.answers = {};
     renderLevel(STATE.currentLevel);
     showPage('page-level');
   });
 
-  document.getElementById('btn-jump').addEventListener('click', () => {
+  // Home: Jump to selected level
+  const btnJump = document.getElementById('btn-jump');
+  if (btnJump) btnJump.addEventListener('click', () => {
     const sel = document.getElementById('jump-level');
     const lvl = Number(sel.value) || 1;
     STATE.currentLevel = lvl;
@@ -163,104 +180,84 @@ function wireUpEvents() {
     showPage('page-level');
   });
 
-  document.getElementById('btn-back-home').addEventListener('click', () => {
-    showPage('page-home');
-  });
+  // Back to home from level page
+  const btnBackHome = document.getElementById('btn-back-home');
+  if (btnBackHome) btnBackHome.addEventListener('click', () => showPage('page-home'));
 
-
-  /* -------------------------
-     DARK MODE TOGGLE
-     (placed AFTER the other UI buttons)
-     ------------------------- */
-  const darkToggle = document.getElementById('darkmode-toggle');
-
-  // Load previously saved theme
-  try {
-    const savedTheme = localStorage.getItem('scripture-theme');
-    if (savedTheme === 'dark') {
-      document.body.classList.add('dark-mode');
-      darkToggle.checked = true;
-    }
-  } catch (e) {}
-
-  // Handle toggling on/off
-  darkToggle.addEventListener('change', () => {
-    if (darkToggle.checked) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('scripture-theme', 'dark');
-    } else {
-      document.body.classList.remove('dark-mode');
-      localStorage.setItem('scripture-theme', 'light');
-    }
-  });
-
-} // ← end of wireUpEvents()
-
-
-  /* Submit level */
-  document.getElementById('btn-submit-level').addEventListener('click', () => {
-    // collect answers and evaluate
+  // Submit level: collect answers, evaluate, show result page
+  const btnSubmit = document.getElementById('btn-submit-level');
+  if (btnSubmit) btnSubmit.addEventListener('click', () => {
     const answers = collectAnswers(STATE.currentLevel);
-    STATE.answers = answers; // temp
+    STATE.answers = answers;
     const correct = evaluateLevel(STATE.currentLevel, answers);
 
-    // Show result page
-    document.getElementById('level-result-summary').textContent =
-      `You answered ${correct} out of 5 correctly.`;
+    const summary = document.getElementById('level-result-summary');
+    if (summary) summary.textContent = `You answered ${correct} out of 5 correctly.`;
 
-    // Show redo if not perfect
+    // Show redo area or fun-fact area
+    const redo = document.getElementById('redo-area');
+    const ff = document.getElementById('fun-fact-area');
     if (correct === 5) {
-      document.getElementById('redo-area').classList.add('hidden');
-      document.getElementById('fun-fact-area').classList.remove('hidden');
+      if (redo) redo.classList.add('hidden');
+      if (ff) ff.classList.remove('hidden');
     } else {
-      document.getElementById('redo-area').classList.remove('hidden');
-      document.getElementById('fun-fact-area').classList.add('hidden');
+      if (redo) redo.classList.remove('hidden');
+      if (ff) ff.classList.add('hidden');
     }
 
     showPage('page-level-result');
   });
 
-  /* Redo level */
-  document.getElementById('btn-redo-level').addEventListener('click', () => {
-    // Reset only this level's answers in STATE (not grand totals)
+  // Redo level (resets only current level's answers in the UI)
+  const btnRedo = document.getElementById('btn-redo-level');
+  if (btnRedo) btnRedo.addEventListener('click', () => {
     STATE.answers = {};
     renderLevel(STATE.currentLevel);
     showPage('page-level');
   });
 
-  document.getElementById('btn-next-level').addEventListener('click', () => {
+  // Next level from result page
+  const btnNext = document.getElementById('btn-next-level');
+  if (btnNext) btnNext.addEventListener('click', () => {
     if (STATE.currentLevel < LEVELS.length) {
       STATE.currentLevel++;
       renderLevel(STATE.currentLevel);
       showPage('page-level');
     } else {
-      // Completed all levels
-      document.getElementById('final-total').textContent =
-        `You answered ${STATE.totals.correct} out of ${LEVELS.length * 5} questions correctly.`;
+      // Completed all levels: show grand totals
+      const final = document.getElementById('final-total');
+      if (final) final.textContent = `You answered ${STATE.totals.correct} out of ${LEVELS.length * 5} questions correctly.`;
       showPage('page-complete');
     }
   });
 
-  document.getElementById('btn-home-from-result').addEventListener('click', () => showPage('page-home'));
+  // Home from result page
+  const btnHomeFromResult = document.getElementById('btn-home-from-result');
+  if (btnHomeFromResult) btnHomeFromResult.addEventListener('click', () => showPage('page-home'));
 
-  document.getElementById('btn-restart-all').addEventListener('click', () => {
-    // Reset totals and progress
+  // Restart all: resets totals
+  const btnRestartAll = document.getElementById('btn-restart-all');
+  if (btnRestartAll) btnRestartAll.addEventListener('click', () => {
     STATE.totals = { correct: 0, attempted: 0 };
     try { localStorage.removeItem('scripture-gen-totals'); } catch(e){}
     showPage('page-home');
   });
 
-  document.getElementById('btn-home-from-complete').addEventListener('click', () => showPage('page-home'));
+  // Home from completion page
+  const btnHomeFromComplete = document.getElementById('btn-home-from-complete');
+  if (btnHomeFromComplete) btnHomeFromComplete.addEventListener('click', () => showPage('page-home'));
 
-  /* Settings button always visible - opens settings page */
-  document.getElementById('settings-btn').addEventListener('click', () => {
-    showPage('page-settings');
-  });
+  // Settings button (floating)
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) settingsBtn.addEventListener('click', () => showPage('page-settings'));
 
-  /* Settings close/save */
-  document.getElementById('btn-close-settings').addEventListener('click', () => showPage('page-home'));
-  document.getElementById('btn-save-settings').addEventListener('click', () => {
-    // Purpose: persist settings (simple example)
+  // Close settings -> return home
+  const btnCloseSettings = document.getElementById('btn-close-settings');
+  if (btnCloseSettings) btnCloseSettings.addEventListener('click', () => showPage('page-home'));
+
+  // Save settings (persist the textarea value locally)
+  const btnSaveSettings = document.getElementById('btn-save-settings');
+  if (btnSaveSettings) btnSaveSettings.addEventListener('click', () => {
     const txt = document.getElementById('setting-text-1').value;
     try { localStorage.setItem('scripture-gen-settings', JSON.stringify({ about: txt })); } catch(e){}
     alert('Settings saved locally.');
@@ -268,27 +265,24 @@ function wireUpEvents() {
 }
 
 /* -------------------------
-   Initialization on page load
+   Initialization on DOMContentLoaded
+   Purpose: wire events, populate selectors, restore settings, and show home page
    ------------------------- */
 function init() {
-  // Populate jump selector and set handlers
   populateLevelSelector();
-
-  // Hook up events
   wireUpEvents();
-
-  // Render initial page
   showPage('page-home');
 
-  // If you want to auto-load settings into the settings textarea:
+  // Load settings textarea if present
   try {
     const s = localStorage.getItem('scripture-gen-settings');
     if (s) {
       const parsed = JSON.parse(s);
-      document.getElementById('setting-text-1').value = parsed.about || '';
+      const ta = document.getElementById('setting-text-1');
+      if (ta) ta.value = parsed.about || '';
     }
   } catch(e){}
 }
 
-/* Run init after DOM loaded */
+/* Attach init after DOM is ready */
 document.addEventListener('DOMContentLoaded', init);
