@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Basic meta and app title -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Scripture Generator</title>
+
+  <!-- Manifest for PWA (pwabuilder / Play Store) -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Nunito font family from Google Fonts -->
+  <!-- NOTE: weights used: 400 (normal), 600 (semi-bold), 700 (bold) -->
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Main styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- APP SHELL: holds all page wrappers. The app is single-page (SPA) using JS routing.
+       Editing inside one <section> should not break other pages. Each section is hidden
+       except the active one. -->
+  <div id="app-shell">
+
+    <!-- Header wrapper: contains app title and tagline placeholder.
+         Purpose: This is shown on every page at the top. Edit title/tagline here. -->
+    <header id="app-header">
+      <!-- App title centered, Nunito bold 30px -->
+      <h1 class="app-title">Scripture Generator</h1>
+      <!-- Tagline placeholder (Nunito semi-bold 18px). Fill later. -->
+      <p class="app-tagline" id="tagline-placeholder">[Short tagline goes here]</p>
+    </header>
+
+    <!-- Home page wrapper
+         Purpose: Entry page that lets user start at any level or continue from progress -->
+    <section id="page-home" class="page active">
+      <!-- Home instructions & controls -->
+      <div class="page-inner">
+        <h2>Welcome</h2>
+        <p>Press Start to begin at Level 1 or jump to a specific level using the selector.</p>
+
+        <!-- Level selector and Start buttons -->
+        <label for="jump-level">Jump to level:</label>
+        <select id="jump-level" aria-label="Jump to level"></select>
+
+        <div class="controls">
+          <button id="btn-start">Start Level 1</button>
+          <button id="btn-jump">Go to level</button>
+        </div>
+
+        <!-- Placeholder image area -->
+        <div class="placeholder-image">
+          <!-- purpose: image placeholder; replace icons/placeholder.png with your image -->
+          <img src="icons/placeholder.png" alt="placeholder image" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Level page wrapper
+         Purpose: Main quiz UI for a level (shows 5 questions for current level).
+         Each question uses an underlined blank and four multiple-choice options. -->
+    <section id="page-level" class="page">
+      <div class="page-inner">
+        <h2 id="level-title">Level 1</h2>
+
+        <!-- Questions container: each question wrapped in its own <article> -->
+        <div id="questions-container">
+          <!-- Template for question items will be injected by JavaScript.
+               Edit question text in levels.js (data file) rather than here. -->
+        </div>
+
+        <div class="controls">
+          <button id="btn-submit-level">Submit Level</button>
+          <button id="btn-back-home">Back to Home</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Level result page wrapper
+         Purpose: Shows score for just-completed level and offers redo if needed.
+         If 5/5, shows Fun Fact area editable later. -->
+    <section id="page-level-result" class="page">
+      <div class="page-inner">
+        <h2>Level Result</h2>
+        <p id="level-result-summary">You answered X out of 5 correctly.</p>
+
+        <!-- Redo option (visible if any incorrect) -->
+        <div id="redo-area">
+          <button id="btn-redo-level">Redo Level</button>
+        </div>
+
+        <!-- Fun fact area (editable by you in the admin panel or directly in code later).
+             Shown only when the level was completed perfectly. -->
+        <div id="fun-fact-area" class="hidden">
+          <h3>Fun Fact in the Gospels</h3>
+          <!-- leave a paragraph so you can input the text manually later -->
+          <p id="fun-fact-text" contenteditable="true">[Add fun fact here]</p>
+        </div>
+
+        <div class="controls">
+          <button id="btn-next-level">Next Level</button>
+          <button id="btn-home-from-result">Home</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final completion page wrapper
+         Purpose: After finishing all 100 levels show grand totals and a finish message. -->
+    <section id="page-complete" class="page">
+      <div class="page-inner">
+        <h2>All Levels Complete</h2>
+        <p id="final-total">You answered X out of 500 questions correctly.</p>
+        <div class="controls">
+          <button id="btn-restart-all">Restart All Levels</button>
+          <button id="btn-home-from-complete">Home</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings page wrapper
+         Purpose: Completely separate page for settings and app info. Always opened via the settings button.
+         Note: This page is routed to and is NOT embedded in other page DOM sections to avoid accidental edits. -->
+    <section id="page-settings" class="page">
+      <div class="page-inner">
+        <h2>Settings</h2>
+
+        <!-- Place for you to input things about the app later -->
+        <div class="settings-entry">
+          <label for="setting-text-1">About the app (editable):</label>
+          <textarea id="setting-text-1" rows="6" placeholder="Add app info here..."></textarea>
+        </div>
+
+        <!-- Copyright line at bottom of settings page -->
+        <footer class="settings-footer">
+          <!-- copyright text in HEX #434343, Nunito normal, size 11, italicized -->
+          <p class="copyright">© taskforcetech</p>
+        </footer>
+
+        <div class="controls">
+          <button id="btn-save-settings">Save Settings</button>
+          <button id="btn-close-settings">Close</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Invisible area for modular templates or data debugging -->
+    <section id="page-templates" class="page hidden">
+      <!-- purpose: store HTML templates or debug info; leave them here to avoid cluttering other sections -->
+      <template id="question-template">
+        <article class="question-item">
+          <p class="question-text"><!-- question text goes here --></p>
+          <div class="options">
+            <!-- four radio options will be inserted -->
+          </div>
+        </article>
+      </template>
+    </section>
+
+    <!-- Settings floating button (visible on every page)
+         Purpose: Persistent settings button in bottom-right; links to settings page.
+         Replace icons/settings.png with your Android-style gear png -->
+    <button id="settings-btn" aria-label="Settings">
+      <img src="icons/settings.png" alt="settings" />
+    </button>
+
+  </div>
+
+  <!-- Include level data and application logic -->
+  <script src="levels.js"></script>
+  <script src="app.js"></script>
+
+  <!-- Register service worker for PWA support -->
+  <script>
+    /* Purpose: try to register service worker if available; required for PWABuilder packaging.
+       Edit service-worker.js to tweak caching behavior. */
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').then(function(reg){
+        console.log('Service worker registered', reg);
+      }).catch(function(err){
+        console.warn('Service worker registration failed', err);
+      });
+    }
+  </script>
+</body>
+</html>
+
+            
