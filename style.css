@@ -1,94 +1,38 @@
-/* style.css
-   Purpose: central styles for the entire app. Edit carefully. */
+/* ============================================================
+   Scripture Generator – Full Redesigned Stylesheet
+   Consistent with all original instructions + new color theme
+   + added dark mode support
+   ============================================================ */
 
-/* Global reset & base font */
-* { box-sizing: border-box; }
-html,body { height:100%; margin:0; padding:0; font-family: 'Nunito', sans-serif; color:#000000; }
+/* ------------------------------------------------------------
+   COLOR VARIABLES
+   Using CSS variables keeps everything easy to edit later.
+   ------------------------------------------------------------ */
+:root {
+  --bg-color: #C7B35D;        /* Page background */
+  --border-color: #D1B960;    /* Gold border */
+  --text-color: #000000;      /* Default text */
 
-/* Header styles (title and tagline) */
-#app-header {
-  text-align:center;
-  padding:20px 10px 10px;
-  border-bottom:1px solid #eee;
-}
-.app-title {
-  /* Nunito bold 30px */
-  font-weight:700;
-  font-size:30px;
-  margin:0;
-}
-.app-tagline {
-  /* Nunito semi-bold 18px */
-  font-weight:600;
-  font-size:18px;
-  margin:6px 0 0;
+  /* Dark mode colors */
+  --bg-color-dark: #2B2B2B;
+  --border-color-dark: #7A5F26; 
+  --text-color-dark: #FFFFFF;
 }
 
-/* Page layout */
-.page { display:none; padding:20px; min-height:60vh; }
-.page.active { display:block; }
-
-/* Inner container to constrain content */
-.page-inner { max-width:720px; margin: 20px auto; }
-
-/* Buttons and controls */
-.controls { margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
-button {
-  font-family:'Nunito', sans-serif;
-  font-size:16px; /* Nunito normal font size 16 per spec */
-  padding:10px 14px;
-  border-radius:8px;
-  border:1px solid #ccc;
-  cursor:pointer;
-  background:#fff;
+/* Dark mode class applied to <body> */
+body.dark-mode {
+  background-color: var(--bg-color-dark);
+  color: var(--text-color-dark);
 }
 
-/* Questions styling */
-.question-item { margin-bottom:16px; padding:10px; border-radius:6px; border:1px solid #f0f0f0; }
-.question-text { font-size:16px; margin:0 0 8px; }
-.options { display:flex; flex-direction:column; gap:6px; }
-.option-label { display:flex; gap:8px; align-items:center; cursor:pointer; }
-
-/* underlined blank styling inside question text - use <u> or span. */
-.blank {
-  text-decoration:underline;
+/* ------------------------------------------------------------
+   RESET + BASE
+   ------------------------------------------------------------ */
+* {
+  box-sizing: border-box;
 }
 
-/* Placeholder image styles */
-.placeholder-image img { max-width:100%; height:auto; display:block; margin-top:12px; }
-
-/* Settings button fixed bottom-right */
-#settings-btn {
-  position:fixed;
-  right:16px;
-  bottom:16px;
-  width:56px;
-  height:56px;
-  border-radius:28px;
-  border:none;
-  box-shadow:0 2px 6px rgba(0,0,0,0.2);
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-#settings-btn img { width:28px; height:28px; }
-
-/* Settings footer copyright styling */
-.settings-footer { margin-top:30px; text-align:center; }
-.settings-footer .copyright{
-  color: #434343; /* per spec */
-  font-size:11px;
-  font-style: italic;
-  font-weight:400;
-}
-
-/* Hidden utility class */
-.hidden { display:none !important; }
-
-/* Small responsiveness */
-@media (max-width:520px){
-  .page-inner { padding:10px; }
-  .controls { flex-direction:column; }
-}
+html, body {
+  height: 100%;
+  margin: 0;
+  pad
